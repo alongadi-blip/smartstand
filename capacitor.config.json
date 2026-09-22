@@ -1,0 +1,9 @@
+{
+  "appId": "com.smartstand.app",
+  "appName": "ניהול דוכנים",
+  "webDir": "dist",
+  "server": {
+    "url": "https://smartstand-il.web.app",
+    "cleartext": false
+  }
+}
