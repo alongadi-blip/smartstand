@@ -59,9 +59,11 @@ function seedDay(dayId, intensity, closed) {
       const item = items[Math.floor(rnd() * items.length)];
       const opts = saleOptions(item);
       const roll = rnd();
+      // בערך שליש מהלקוחות משלמים בביט
+      const payment = rnd() < 0.34 ? 'bit' : 'cash';
       const sale = roll < 0.12
-        ? buildSale(item, { option: null, actualPrice: item.price - (rnd() < 0.5 ? 5 : 10) })
-        : buildSale(item, { option: roll < 0.3 && opts[1] ? opts[1] : opts[0] });
+        ? buildSale(item, { option: null, actualPrice: item.price - (rnd() < 0.5 ? 5 : 10), payment })
+        : buildSale(item, { option: roll < 0.3 && opts[1] ? opts[1] : opts[0], payment });
       if ((soldU[item.id] || 0) + sale.units > item.qty) continue;
       soldU[item.id] = (soldU[item.id] || 0) + sale.units;
       const w = Object.values(S.users).find((u) => u.standId === sid);

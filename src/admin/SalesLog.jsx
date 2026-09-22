@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { useAllStandDays } from '../lib/hooks.js';
 import { money, num, time } from '../lib/format.js';
 import { Empty, useUser, useToast } from '../ui.jsx';
+import { PAYMENT_LABEL, isBit } from '../lib/calc.js';
 
 const KIND = { regular: 'רגיל', promo: 'מבצע', discount: 'הנחה' };
 
@@ -40,7 +41,7 @@ export default function SalesLog({ dayId, stands }) {
       {!rows.length ? <Empty>אין מכירות להצגה</Empty> : (
         <div className="table-wrap">
           <table className="tbl log">
-            <thead><tr><th>שעה</th><th>דוכן</th><th>מוצר</th><th>כמות</th><th>סוג</th><th>מחיר מלא</th><th>בפועל</th><th>הנחה</th><th>עובד</th><th /></tr></thead>
+            <thead><tr><th>שעה</th><th>דוכן</th><th>מוצר</th><th>כמות</th><th>סוג</th><th>מחיר מלא</th><th>בפועל</th><th>הנחה</th><th>תשלום</th><th>עובד</th><th /></tr></thead>
             <tbody>
               {rows.map((s) => (
                 <tr key={s.id} className={s.status === 'void' ? 'void' : s.correctionOf ? 'fixed' : ''}>
@@ -52,6 +53,7 @@ export default function SalesLog({ dayId, stands }) {
                   <td>{money(s.fullPrice)}</td>
                   <td><b>{money(s.actualPrice)}</b></td>
                   <td>{s.discount ? money(s.discount) : '—'}</td>
+                  <td>{PAYMENT_LABEL[isBit(s) ? 'bit' : 'cash']}</td>
                   <td>{s.createdByName}</td>
                   <td className="note">
                     {s.status === 'void' && <span className="tag void">בוטל {s.voidedAt && time(s.voidedAt)}{s.voidedByName && ` ע״י ${s.voidedByName}`}{s.voidReason && ` — ${s.voidReason}`}{s.replacedBy && ' · הוחלף'}</span>}

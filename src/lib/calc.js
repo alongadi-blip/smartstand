@@ -3,6 +3,11 @@
 export const CATEGORY = { flower: 'flower', fruit: 'fruit' };
 export const CATEGORY_LABEL = { flower: 'פרחים', fruit: 'פירות' };
 
+// אמצעי תשלום. מכירה בלי השדה נחשבת מזומן, כך שמכירות שנרשמו לפני התוספת נשארות נכונות.
+export const PAYMENT = { cash: 'cash', bit: 'bit' };
+export const PAYMENT_LABEL = { cash: 'מזומן', bit: 'ביט' };
+export const isBit = (sale) => sale.payment === PAYMENT.bit;
+
 const r2 = (n) => Math.round(n * 100) / 100;
 
 /** יעד פריט: כל הכמות במחיר הרגיל */
@@ -34,7 +39,7 @@ export function saleOptions(item) {
  * option: אחת מ-saleOptions, או null להנחה ידנית (אז actualPrice חובה).
  * times: כמה פעמים נמכרה האפשרות (למשל 3 זרים במחיר רגיל).
  */
-export function buildSale(item, { option, times = 1, actualPrice, discountUnits = 1 }) {
+export function buildSale(item, { option, times = 1, actualPrice, discountUnits = 1, payment = PAYMENT.cash }) {
   let units, actual, kind, optionLabel;
   if (option) {
     units = option.units * times;
@@ -59,13 +64,18 @@ export function buildSale(item, { option, times = 1, actualPrice, discountUnits 
     fullPrice: full,
     actualPrice: actual,
     discount: r2(Math.max(full - actual, 0)),
+    payment: payment === PAYMENT.bit ? PAYMENT.bit : PAYMENT.cash,
     status: 'active',
   };
 }
 
 function emptyTotals() {
   // cost = העלות של מה שנמכר · stockCost = העלות של כל מה שהובא
-  return { brought: 0, sold: 0, left: 0, target: 0, full: 0, actual: 0, discount: 0, leftValue: 0, salesCount: 0, cost: 0, stockCost: 0 };
+  return {
+    brought: 0, sold: 0, left: 0, target: 0, full: 0, actual: 0, discount: 0, leftValue: 0, salesCount: 0, cost: 0, stockCost: 0,
+    // פילוח ההכנסות לפי אמצעי תשלום — cash + bit = actual
+    cash: 0, bit: 0,
+  };
 }
 
 function addInto(t, s) {
@@ -94,6 +104,8 @@ export function summarizeStand(items = [], sales = []) {
     }
     row.sold = r2(row.sold + s.units);
     row.cost = r2(row.cost + s.units * row.costPrice);
+    if (isBit(s)) row.bit = r2(row.bit + s.actualPrice);
+    else row.cash = r2(row.cash + s.actualPrice);
     row.full = r2(row.full + s.fullPrice);
     row.actual = r2(row.actual + s.actualPrice);
     row.discount = r2(row.discount + s.discount);
@@ -137,6 +149,7 @@ function finalize(t) {
   // רווח = הכנסות בפועל פחות העלות של מה שנמכר
   t.profit = r2(t.actual - t.cost);
   t.margin = t.actual ? t.profit / t.actual : 0;
+  t.bitPct = t.actual ? t.bit / t.actual : 0;
   return t;
 }
 

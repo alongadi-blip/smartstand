@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSale, summarizeStand, saleOptions, combineSummaries } from './calc.js';
+import { buildSale, summarizeStand, saleOptions, combineSummaries, isBit } from './calc.js';
 
 const bouquet70 = { id: 'b70', name: 'זר 70', category: 'flower', unit: 'זר', qty: 10, price: 70, options: [] };
 const straw = { id: 's', name: 'תותים', category: 'fruit', unit: 'מארז', qty: 10, price: 20,
@@ -92,5 +92,58 @@ describe('רווח', () => {
     expect(all.total.cost).toBe(80);
     expect(all.total.profit).toBe(60);
     expect(all.hasCost).toBe(true);
+  });
+});
+
+describe('מזומן וביט', () => {
+  const reg = () => saleOptions(bouquet70)[0];
+
+  it('מזומן הוא ברירת המחדל כשלא נבחר אמצעי תשלום', () => {
+    const sale = buildSale(bouquet70, { option: reg() });
+    expect(sale.payment).toBe('cash');
+    expect(isBit(sale)).toBe(false);
+  });
+
+  it('הפילוח מסתכם להכנסות בפועל', () => {
+    const sales = [
+      buildSale(bouquet70, { option: reg(), payment: 'cash' }),
+      buildSale(bouquet70, { option: reg(), payment: 'bit' }),
+      buildSale(bouquet70, { option: reg(), payment: 'bit' }),
+    ];
+    const s = summarizeStand([bouquet70], sales);
+    expect(s.total.cash).toBe(70);
+    expect(s.total.bit).toBe(140);
+    expect(s.total.cash + s.total.bit).toBe(s.total.actual);
+    expect(Math.round(s.total.bitPct * 100)).toBe(67);
+  });
+
+  it('הנחה בביט נכנסת לביט ולא לקופה', () => {
+    const s = summarizeStand([bouquet70], [buildSale(bouquet70, { option: null, actualPrice: 50, payment: 'bit' })]);
+    expect(s.total.bit).toBe(50);
+    expect(s.total.cash).toBe(0);
+    expect(s.total.discount).toBe(20);
+  });
+
+  it('מכירה שבוטלה לא נספרת בפילוח', () => {
+    const voided = { ...buildSale(bouquet70, { option: reg(), payment: 'bit' }), status: 'void' };
+    const s = summarizeStand([bouquet70], [voided, buildSale(bouquet70, { option: reg(), payment: 'cash' })]);
+    expect(s.total.bit).toBe(0);
+    expect(s.total.cash).toBe(70);
+  });
+
+  it('מכירה ישנה בלי שדה תשלום נחשבת מזומן', () => {
+    const legacy = { itemId: 'b70', itemName: 'זר 70', category: 'flower', units: 1, fullPrice: 70, actualPrice: 70, discount: 0, status: 'active' };
+    const s = summarizeStand([bouquet70], [legacy]);
+    expect(s.total.cash).toBe(70);
+    expect(s.total.bit).toBe(0);
+  });
+
+  it('הפילוח מצטבר בין דוכנים', () => {
+    const a = summarizeStand([bouquet70], [buildSale(bouquet70, { option: reg(), payment: 'bit' })]);
+    const b = summarizeStand([bouquet70], [buildSale(bouquet70, { option: reg(), payment: 'cash' })]);
+    const all = combineSummaries([a, b]);
+    expect(all.total.bit).toBe(70);
+    expect(all.total.cash).toBe(70);
+    expect(all.total.actual).toBe(140);
   });
 });

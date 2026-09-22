@@ -43,10 +43,18 @@ export default function StandReport({ summary, standDay, standName }) {
         <Line k="אחוז מהיעד" v={pct(t.targetPct)} />
         <Line k="פער מהיעד" v={money(t.gap)} tone="warn-text" />
         <div className="r-explain">מתוכו: הנחות {money(t.discount)} · סחורה שלא נמכרה (לפי מחיר מלא) {money(t.leftValue)}</div>
+      </div>
+
+      <div className="r-block total">
+        <h3>לפי אמצעי תשלום</h3>
+        <Line k="מזומן" v={money(t.cash)} strong />
+        <Line k="ביט" v={money(t.bit)} strong />
+        <div className="r-explain">ביט הוא {pct(t.bitPct)} מההכנסות</div>
         {cash != null && (
           <>
             <Line k="כסף שנספר בקופה" v={money(cash)} strong />
-            <Line k="הפרש קופה מול מכירות" v={money(cash - t.actual)} tone={cash - t.actual ? 'warn-text' : ''} />
+            {/* הקופה מושווה למזומן בלבד: תשלומי ביט לא עוברים בקופה */}
+            <Line k="הפרש קופה מול המזומן" v={money(cash - t.cash)} tone={cash - t.cash ? 'warn-text' : ''} />
           </>
         )}
         {standDay?.closedAt && <div className="r-explain">נסגר ב-{time(standDay.closedAt)}{standDay.closedByName && ` ע״י ${standDay.closedByName}`}{standDay.closeNote && ` · ${standDay.closeNote}`}</div>}

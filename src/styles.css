@@ -328,6 +328,15 @@ label.check input { width: auto; min-height: 0; }
 .stand-edit input[aria-label] { max-width: 240px; }
 .stand-edit.void { opacity: .55; }
 
+/* בורר אמצעי תשלום בגיליון המכירה — שני יעדי נגיעה גדולים, מזומן נבחר כברירת מחדל */
+.pay-row { display: flex; gap: 8px; }
+.pay-btn {
+  flex: 1; min-height: 52px; border: 2px solid var(--line); background: var(--surface); border-radius: 12px;
+  cursor: pointer; font-weight: 700; font-size: 1.05rem; color: var(--ink-2); transition: background .15s, border-color .15s, color .15s;
+}
+.pay-btn.on { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.pay-btn.bit.on { border-color: var(--flower); background: var(--flower-soft); color: var(--flower); }
+
 /* ---------- reports ---------- */
 .reports { display: flex; flex-direction: column; gap: 16px; }
 .range-bar { padding-bottom: 6px; }

@@ -3,7 +3,7 @@ import { summarizeStand, combineSummaries } from './calc.js';
 
 const r2 = (n) => Math.round(n * 100) / 100;
 // רק השדות המספריים מצטברים — שם המוצר והקטגוריה נשארים כמו שהם
-const NUMERIC = ['brought', 'sold', 'left', 'target', 'full', 'actual', 'discount', 'cost', 'salesCount'];
+const NUMERIC = ['brought', 'sold', 'left', 'target', 'full', 'actual', 'discount', 'cost', 'salesCount', 'cash', 'bit'];
 const add = (t, s) => { for (const k of NUMERIC) t[k] = r2(t[k] + (s[k] || 0)); };
 const emptyItem = () => Object.fromEntries(NUMERIC.map((k) => [k, 0]));
 

@@ -30,6 +30,7 @@ export default function Dashboard({ dayId, stands, isActive, onSellAs, onSetup }
         <Stat label="זרים שנמכרו" value={num(C.flower.sold)} sub={`מתוך ${num(C.flower.brought)} · ממוצע ${money(C.flower.avgPrice)}`} />
         <Stat label="פירות שנמכרו" value={num(C.fruit.sold)} sub={`מתוך ${num(C.fruit.brought)} · ${money(C.fruit.actual)}`} />
         <Stat label="סה״כ הנחות" value={money(T.discount)} sub={`מחיר מלא ${money(T.full)}`} />
+        <Stat label="מזומן" value={money(T.cash)} sub={`ביט ${money(T.bit)} · ${pct(T.bitPct)} מההכנסות`} />
         {hasCost && <Stat label="רווח היום" value={money(T.profit)} sub={`אחוז רווח ${pct(T.margin)} · עלות ${money(T.cost)}`} tone={T.profit >= 0 ? 'good' : 'low'} />}
       </section>
 
@@ -75,6 +76,7 @@ export default function Dashboard({ dayId, stands, isActive, onSellAs, onSetup }
                       <div key={c}><dt>{CATEGORY_LABEL[c]}</dt><dd>{money(s.byCategory[c].actual)}<small className="dd-sub">{num(s.byCategory[c].sold)} מתוך {num(s.byCategory[c].brought)}</small></dd></div>
                     ))}
                     <div><dt>הנחות</dt><dd>{money(s.total.discount)}</dd></div>
+                    <div><dt>מזומן / ביט</dt><dd>{money(s.total.cash)}<small className="dd-sub">ביט {money(s.total.bit)}</small></dd></div>
                     {s.hasCost && <div><dt>רווח</dt><dd className={s.total.profit < 0 ? 'warn-text' : ''}>{money(s.total.profit)}<small className="dd-sub">{pct(s.total.margin)}</small></dd></div>}
                     <div><dt>ביצוע מלאי</dt><dd>{pct(s.total.sellThrough)}</dd></div>
                     {standDay?.cashCounted != null && <div><dt>קופה שנספרה</dt><dd>{money(standDay.cashCounted)}</dd></div>}

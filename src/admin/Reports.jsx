@@ -78,6 +78,7 @@ export function ReportBody({ data, range }) {
         {hasCost
           ? <Stat label="רווח" value={money(T.profit)} sub={`אחוז רווח ${pct(T.margin)} · עלות ${money(T.cost)}`} tone={T.profit >= 0 ? 'good' : 'low'} />
           : <Stat label="רווח" value="—" sub="הזינו עלות למוצרים במסך הסחורה" />}
+        <Stat label="מזומן" value={money(T.cash)} sub={`ביט ${money(T.bit)} · ${pct(T.bitPct)} מההכנסות`} />
         <Stat label="סה״כ הנחות" value={money(T.discount)} sub={`מחיר מלא ${money(T.full)}`} />
         <Stat label="ביצוע מלאי" value={pct(T.sellThrough)} sub={`נמכרו ${num(T.sold)} מתוך ${num(T.brought)} · נשארו בשווי ${money(T.leftValue)}`} />
       </section>
@@ -103,7 +104,7 @@ export function ReportBody({ data, range }) {
           <div className="table-wrap">
             <table className="tbl">
               <thead>
-                <tr><th>דוכן</th><th>ימים</th><th>הכנסות</th><th>יעד</th><th>% יעד</th><th>הנחות</th>{hasCost && <th>רווח</th>}</tr>
+                <tr><th>דוכן</th><th>ימים</th><th>הכנסות</th><th>מזומן</th><th>ביט</th><th>יעד</th><th>% יעד</th><th>הנחות</th>{hasCost && <th>רווח</th>}</tr>
               </thead>
               <tbody>
                 {perStand.map((s) => (
@@ -111,6 +112,8 @@ export function ReportBody({ data, range }) {
                     <td>{s.name}</td>
                     <td>{num(s.days)}</td>
                     <td><b>{money(s.total.actual)}</b></td>
+                    <td>{money(s.total.cash)}</td>
+                    <td>{money(s.total.bit)}<small className="muted"> {pct(s.total.bitPct)}</small></td>
                     <td>{money(s.total.target)}</td>
                     <td>{pct(s.total.targetPct)}</td>
                     <td>{money(s.total.discount)}</td>
@@ -120,7 +123,7 @@ export function ReportBody({ data, range }) {
               </tbody>
               <tfoot>
                 <tr>
-                  <td>סה״כ</td><td /><td><b>{money(T.actual)}</b></td><td>{money(T.target)}</td>
+                  <td>סה״כ</td><td /><td><b>{money(T.actual)}</b></td><td>{money(T.cash)}</td><td>{money(T.bit)}</td><td>{money(T.target)}</td>
                   <td>{pct(T.targetPct)}</td><td>{money(T.discount)}</td>{hasCost && <td>{money(T.profit)}</td>}
                 </tr>
               </tfoot>
@@ -187,13 +190,15 @@ export function ReportBody({ data, range }) {
         <div className="table-wrap">
           <table className="tbl">
             <thead>
-              <tr><th>יום</th><th>הכנסות</th><th>יעד</th><th>% יעד</th><th>הנחות</th><th>נמכרו</th>{hasCost && <th>רווח</th>}<th>מכירות</th></tr>
+              <tr><th>יום</th><th>הכנסות</th><th>מזומן</th><th>ביט</th><th>יעד</th><th>% יעד</th><th>הנחות</th><th>נמכרו</th>{hasCost && <th>רווח</th>}<th>מכירות</th></tr>
             </thead>
             <tbody>
               {[...perDay].reverse().map((d) => (
                 <tr key={d.dayId}>
                   <td>{dayLabel(d.dayId)}{d.closed && <small className="muted"> נסגר</small>}</td>
                   <td><b>{money(d.total.actual)}</b></td>
+                  <td>{money(d.total.cash)}</td>
+                  <td>{money(d.total.bit)}</td>
                   <td>{money(d.total.target)}</td>
                   <td>{pct(d.total.targetPct)}</td>
                   <td>{money(d.total.discount)}</td>

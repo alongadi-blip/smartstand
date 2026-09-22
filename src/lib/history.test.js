@@ -61,6 +61,15 @@ describe('אגרגציה על טווח ימים', () => {
     expect(r.total.margin).toBeGreaterThan(0);
   });
 
+  it('פילוח מזומן/ביט מסתכם להכנסות, בכל חתך', async () => {
+    const { rows } = await loadAll();
+    const r = summarizeRange(rows, STANDS);
+    expect(r.total.bit).toBeGreaterThan(0);
+    expect(Math.round(r.total.cash + r.total.bit)).toBe(Math.round(r.total.actual));
+    for (const s of r.perStand) expect(Math.round(s.total.cash + s.total.bit)).toBe(Math.round(s.total.actual));
+    for (const d of r.perDay) expect(Math.round(d.total.cash + d.total.bit)).toBe(Math.round(d.total.actual));
+  });
+
   it('הטוב, הגרוע והממוצע', async () => {
     const { rows } = await loadAll();
     const { perDay } = summarizeRange(rows, STANDS);

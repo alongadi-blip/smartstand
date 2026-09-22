@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api.js';
 import { useStandDay, useWatch } from '../lib/hooks.js';
-import { buildSale, saleOptions, CATEGORY_LABEL } from '../lib/calc.js';
+import { buildSale, saleOptions, CATEGORY_LABEL, PAYMENT, PAYMENT_LABEL, isBit } from '../lib/calc.js';
 import { money, num, time, dayLabel } from '../lib/format.js';
 import { useUser, useToast, Sheet, Empty } from '../ui.jsx';
 import StandReport from '../report/StandReport.jsx';
@@ -29,7 +29,7 @@ export default function StandScreen({ dayId, standId, onBack }) {
     }
     setPicked(null);
     const id = await api.addSale(dayId, standId, sale, user);
-    toast(`נרשם: ${sale.itemName} · ${money(sale.actualPrice)}`, {
+    toast(`נרשם: ${sale.itemName} · ${money(sale.actualPrice)} · ${PAYMENT_LABEL[sale.payment]}`, {
       label: 'ביטול',
       fn: () => api.voidSale(dayId, standId, id, 'בוטל מיד לאחר ההזנה', user),
     });
@@ -122,6 +122,8 @@ function SaleSheet({ item, fixing, onClose, onSale }) {
   const [times, setTimes] = useState(1);
   const [discountMode, setDiscountMode] = useState(false);
   const [actual, setActual] = useState('');
+  // מזומן כברירת מחדל, ומתאפס בכל מכירה — אי אפשר לשכוח להחזיר את הבורר
+  const [payment, setPayment] = useState(PAYMENT.cash);
   const opts = saleOptions(item);
   const full = item.price * times;
 
@@ -136,11 +138,20 @@ function SaleSheet({ item, fixing, onClose, onSale }) {
         </div>
       </div>
 
+      <div className="pay-row" role="group" aria-label="אמצעי תשלום">
+        {[PAYMENT.cash, PAYMENT.bit].map((p) => (
+          <button key={p} className={'pay-btn ' + p + (payment === p ? ' on' : '')}
+            aria-pressed={payment === p} onClick={() => setPayment(p)}>
+            {p === PAYMENT.cash ? '₪' : '⚡'} {PAYMENT_LABEL[p]}
+          </button>
+        ))}
+      </div>
+
       {!discountMode ? (
         <div className="opt-grid">
           {opts.map((o) => (
             <button key={o.id} className={'opt-btn ' + o.kind}
-              onClick={() => onSale(buildSale(item, { option: o, times }))}>
+              onClick={() => onSale(buildSale(item, { option: o, times, payment }))}>
               <span>{o.kind === 'regular' ? 'מחיר רגיל' : o.label}</span>
               <b>{money(o.price * times)}</b>
               {o.units * times > 1 && <small>{num(o.units * times)} {item.unit || 'יח׳'}</small>}
@@ -165,7 +176,7 @@ function SaleSheet({ item, fixing, onClose, onSale }) {
           <div className="row">
             <button className="btn big" onClick={() => setDiscountMode(false)}>חזרה</button>
             <button className="btn big primary" disabled={actual === '' || Number(actual) < 0}
-              onClick={() => onSale(buildSale(item, { option: null, actualPrice: actual, discountUnits: times }))}>
+              onClick={() => onSale(buildSale(item, { option: null, actualPrice: actual, discountUnits: times, payment }))}>
               {fixing ? 'שמירת תיקון' : 'אישור מכירה'}
             </button>
           </div>
@@ -189,7 +200,10 @@ function SalesSheet({ sales, closed, onClose, onFix, onVoid }) {
             <button className="sale-row" disabled={closed || s.status === 'void'} onClick={() => { setSel(s); setReason(''); }}>
               <span className="t">{time(s.createdAt)}</span>
               <span className="n">{s.itemName} {s.units > 1 && `×${num(s.units)}`}<small>{s.optionLabel}{s.correctionOf && ' · תיקון'}</small></span>
-              <span className="p">{money(s.actualPrice)}{s.discount > 0 && <small>הנחה {money(s.discount)}</small>}</span>
+              <span className="p">
+                {money(s.actualPrice)}
+                <small>{isBit(s) ? 'ביט' : 'מזומן'}{s.discount > 0 && ` · הנחה ${money(s.discount)}`}</small>
+              </span>
             </button>
             {s.status === 'void' && <div className="void-note">בוטל{s.voidReason && `: ${s.voidReason}`}</div>}
           </li>
@@ -218,11 +232,16 @@ function CloseSheet({ summary, standName, onClose, onConfirm }) {
   return (
     <Sheet title="סגירת דוכן" onClose={onClose} wide>
       <StandReport summary={summary} standName={standName} />
+      {/* הקופה מושווה למכירות המזומן בלבד — תשלומי ביט לא נכנסים לקופה */}
       <label className="big-input">כסף שנספר בקופה (לא חובה)
-        <input type="number" inputMode="decimal" value={cash} onChange={(e) => setCash(e.target.value)} placeholder={String(summary.total.actual)} />
+        <input type="number" inputMode="decimal" value={cash} onChange={(e) => setCash(e.target.value)} placeholder={String(summary.total.cash)} />
       </label>
-      {cash !== '' && Number(cash) !== summary.total.actual && (
-        <div className="warn">הפרש מול המכירות שנרשמו: {money(Number(cash) - summary.total.actual)}</div>
+      <div className="muted small">
+        אמור להיות בקופה: <b>{money(summary.total.cash)}</b> (מזומן בלבד)
+        {summary.total.bit > 0 && <> · בביט התקבלו {money(summary.total.bit)}, לא בקופה</>}
+      </div>
+      {cash !== '' && Number(cash) !== summary.total.cash && (
+        <div className="warn">הפרש מול המזומן שנרשם: {money(Number(cash) - summary.total.cash)}</div>
       )}
       <input placeholder="הערה (לא חובה)" value={note} onChange={(e) => setNote(e.target.value)} />
       <button className="btn big primary" disabled={busy} onClick={() => { setBusy(true); onConfirm({ cashCounted: cash, note }); }}>
