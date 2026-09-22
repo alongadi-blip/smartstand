@@ -54,9 +54,22 @@ export default function Team() {
                   </td>
                   <td>
                     {u.id === me.uid ? 'אני' : (
-                      <button className="link" onClick={() => api.updateUser(u.id, { active: u.active === false })}>
-                        {u.active === false ? 'הפעלה מחדש' : 'השבתה'}
-                      </button>
+                      <div className="row">
+                        <button className="link" onClick={() => api.updateUser(u.id, { active: u.active === false })}>
+                          {u.active === false ? 'הפעלה מחדש' : 'השבתה'}
+                        </button>
+                        <button className="icon-btn danger" aria-label={`הסרת ${u.name} מהרשימה`}
+                          title="הסרה מהרשימה — להשבתה בלבד עדיף 'השבתה'"
+                          onClick={async () => {
+                            if (!confirm(`להסיר את ${u.name} מהרשימה?\n\nהמכירות שרשם נשארות בדוחות עם שמו.\nאם חשבון ההתחברות שלו עוד קיים — הוא לא יוכל להיכנס, אבל כדי למחוק את החשבון עצמו צריך את הקונסול של Firebase.`)) return;
+                            try {
+                              await api.deleteUser(u.id);
+                              toast('הוסר מהרשימה ✓');
+                            } catch (x) {
+                              toast('לא הצלחתי להסיר: ' + (x.code || x.message));
+                            }
+                          }}>🗑</button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -64,7 +77,11 @@ export default function Team() {
             </tbody>
           </table>
         </div>
-        <p className="muted small">עובד מושבת לא יכול להיכנס. להחלפת סיסמה: השביתו ויצרו משתמש חדש (או דרך מסוף Firebase).</p>
+        <p className="muted small">
+          עובד מושבת לא יכול להיכנס, והמכירות שלו נשארות בדוחות — זו הדרך המומלצת לעובד שסיים.
+          הסל מסיר אותו מהרשימה לגמרי, ומתאים בעיקר לפרופיל שחשבון ההתחברות שלו כבר נמחק.
+          להחלפת סיסמה: השביתו ויצרו משתמש חדש (או דרך מסוף Firebase).
+        </p>
       </section>
 
       <form className="card form-grid" onSubmit={create}>

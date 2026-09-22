@@ -37,7 +37,9 @@ service cloud.firestore {
             && !exists(/databases/$(database)/documents/meta/bootstrap)
             && existsAfter(/databases/$(database)/documents/meta/bootstrap));
       allow update: if isAdmin();
-      allow delete: if false;
+      // מנהל יכול להסיר פרופיל (למשל עובד שחשבון ההתחברות שלו נמחק), אבל לא את שלו —
+      // מחיקת הפרופיל של עצמך נועלת אותך מחוץ למערכת. המכירות שומרות את שם העובד בתוכן.
+      allow delete: if isAdmin() && request.auth.uid != uid;
     }
 
     match /stands/{standId} {

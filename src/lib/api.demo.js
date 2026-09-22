@@ -184,4 +184,5 @@ export const api = {
     emit();
   },
   updateUser: async (id, patch) => { Object.assign(S.users[id], patch); emit(); },
+  deleteUser: async (id) => { delete S.users[id]; emit(); },
 };

@@ -6,7 +6,7 @@ import {
 } from 'firebase/auth';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, collection, getDoc, getDocs, setDoc, updateDoc, onSnapshot, writeBatch,
+  doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch,
   query, where, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { USER_DOMAIN, toEmail } from './format.js';
@@ -166,6 +166,8 @@ export const api = {
     }
   },
   updateUser: (uid, patch) => updateDoc(doc(db, 'users', uid), patch),
+  /** הסרת פרופיל. לא מוחק את חשבון ההתחברות — לזה צריך את הקונסול של Firebase. */
+  deleteUser: (uid) => deleteDoc(doc(db, 'users', uid)),
 };
 
 export { USER_DOMAIN };
