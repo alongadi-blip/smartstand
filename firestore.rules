@@ -1,0 +1,79 @@
+rules_version = '2';
+// כללי אבטחה: מנהל רואה ועורך הכול; עובד רואה רק את הדוכן שלו,
+// מוסיף מכירות, מבטל/מתקן מכירה (סימון בלבד — לא מחיקה) וסוגר את הדוכן.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(userPath()).data; }
+    function hasProfile() { return signedIn() && exists(userPath()); }
+    function isAdmin() { return hasProfile() && me().role == 'admin' && me().active != false; }
+    function isWorkerOf(standId) {
+      return hasProfile() && me().role == 'worker' && me().active != false && me().standId == standId;
+    }
+    function standOpen(dayId, standId) {
+      return get(/databases/$(database)/documents/days/$(dayId)/stands/$(standId)).data.status == 'open';
+    }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // סימון שהמערכת כבר הוקמה (המנהל הראשון נוצר)
+    match /meta/bootstrap {
+      allow read: if true;
+      allow create: if signedIn()
+        && getAfter(userPath()).data.role == 'admin';
+      allow update, delete: if false;
+    }
+    match /meta/settings {
+      allow read: if hasProfile();
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if isAdmin()
+        // המנהל הראשון — רק כשהמערכת עדיין לא הוקמה, ובאותה פעולה נוצר meta/bootstrap
+        || (signedIn() && request.auth.uid == uid
+            && request.resource.data.role == 'admin'
+            && !exists(/databases/$(database)/documents/meta/bootstrap)
+            && existsAfter(/databases/$(database)/documents/meta/bootstrap));
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /stands/{standId} {
+      allow read: if isAdmin() || isWorkerOf(standId);
+      allow write: if isAdmin();
+    }
+
+    match /days/{dayId} {
+      allow read: if hasProfile();
+      allow write: if isAdmin();
+
+      match /stands/{standId} {
+        allow read: if isAdmin() || isWorkerOf(standId);
+        allow create, delete: if isAdmin();
+        allow update: if isAdmin()
+          || (isWorkerOf(standId)
+              && resource.data.status == 'open'
+              && request.resource.data.status == 'closed'
+              && onlyChanges(['status', 'closedAt', 'closedBy', 'closedByName', 'cashCounted', 'closeNote']));
+
+        match /sales/{saleId} {
+          allow read: if isAdmin() || isWorkerOf(standId);
+          allow create: if isAdmin()
+            || (isWorkerOf(standId)
+                && standOpen(dayId, standId)
+                && request.resource.data.createdBy == request.auth.uid
+                && request.resource.data.status == 'active');
+          allow update: if isAdmin()
+            || (isWorkerOf(standId)
+                && standOpen(dayId, standId)
+                && resource.data.status == 'active'
+                && request.resource.data.status == 'void'
+                && onlyChanges(['status', 'voidedAt', 'voidedBy', 'voidedByName', 'voidReason', 'replacedBy']));
+          allow delete: if false; // שום מכירה לא נמחקת
+        }
+      }
+    }
+  }
+}
