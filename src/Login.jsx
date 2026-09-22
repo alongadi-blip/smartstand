@@ -9,6 +9,11 @@ const ERR = {
   'auth/network-request-failed': 'אין חיבור לרשת',
   'auth/weak-password': 'הסיסמה צריכה לכלול לפחות 6 תווים',
   'auth/email-already-in-use': 'האימייל כבר רשום',
+  // שירות ההתחברות לא הוקם / שיטת האימייל כבויה בקונסול של Firebase
+  'auth/configuration-not-found': 'ההתחברות עדיין לא הופעלה בפרויקט: בקונסול של Firebase → Authentication → Get started → Email/Password → Enable.',
+  'auth/operation-not-allowed': 'שיטת ההתחברות באימייל וסיסמה כבויה: בקונסול של Firebase → Authentication → Sign-in method → Email/Password → Enable.',
+  'auth/invalid-email': 'כתובת האימייל לא תקינה',
+  'permission-denied': 'אין הרשאה. נסו להתנתק ולהיכנס מחדש.',
 };
 const errText = (e) => ERR[e?.code || e?.message] || 'שגיאה: ' + (e?.message || e);
 
