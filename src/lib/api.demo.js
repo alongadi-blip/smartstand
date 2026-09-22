@@ -31,14 +31,14 @@ const S = {
 };
 
 const flowers = (a, b, c) => [
-  { id: 'f60', name: 'זר 60', category: 'flower', unit: 'זר', qty: a, price: 60, options: [] },
-  { id: 'f70', name: 'זר 70', category: 'flower', unit: 'זר', qty: b, price: 70, options: [{ id: 'p1', label: 'מבצע 65', units: 1, price: 65 }] },
-  { id: 'f80', name: 'זר 80', category: 'flower', unit: 'זר', qty: c, price: 80, options: [{ id: 'p2', label: '2 ב-150', units: 2, price: 150 }] },
+  { id: 'f60', name: 'זר 60', category: 'flower', unit: 'זר', qty: a, price: 60, cost: 34, options: [] },
+  { id: 'f70', name: 'זר 70', category: 'flower', unit: 'זר', qty: b, price: 70, cost: 40, options: [{ id: 'p1', label: 'מבצע 65', units: 1, price: 65 }] },
+  { id: 'f80', name: 'זר 80', category: 'flower', unit: 'זר', qty: c, price: 80, cost: 47, options: [{ id: 'p2', label: '2 ב-150', units: 2, price: 150 }] },
 ];
 const fruit = () => [
-  { id: 'straw', name: 'תותים', category: 'fruit', unit: 'מארז', qty: 10, price: 20, options: [{ id: 'o1', label: '2 ב-35', units: 2, price: 35 }, { id: 'o2', label: '3 ב-50', units: 3, price: 50 }] },
-  { id: 'grape', name: 'ענבים', category: 'fruit', unit: 'ק"ג', qty: 10, price: 25, options: [{ id: 'o3', label: '2 ק"ג ב-40', units: 2, price: 40 }] },
-  { id: 'pine', name: 'אננס', category: 'fruit', unit: 'יחידה', qty: 5, price: 15, options: [{ id: 'o4', label: '2 ב-25', units: 2, price: 25 }] },
+  { id: 'straw', name: 'תותים', category: 'fruit', unit: 'מארז', qty: 10, price: 20, cost: 12, options: [{ id: 'o1', label: '2 ב-35', units: 2, price: 35 }, { id: 'o2', label: '3 ב-50', units: 3, price: 50 }] },
+  { id: 'grape', name: 'ענבים', category: 'fruit', unit: 'ק"ג', qty: 10, price: 25, cost: 15, options: [{ id: 'o3', label: '2 ק"ג ב-40', units: 2, price: 40 }] },
+  { id: 'pine', name: 'אננס', category: 'fruit', unit: 'יחידה', qty: 5, price: 15, cost: 9, options: [{ id: 'o4', label: '2 ב-25', units: 2, price: 25 }] },
 ];
 
 function seedDay(dayId, intensity, closed) {
@@ -81,12 +81,12 @@ function seedDay(dayId, intensity, closed) {
   S.days[dayId] = day;
 }
 
-// שלושה ימי שישי קודמים סגורים + היום הפעיל באמצע מכירות
+// שמונה ימי שישי קודמים סגורים + היום הפעיל באמצע מכירות (כדי שגם הדוחות יהיו מעניינים)
 const fri = nextFriday();
 const d0 = new Date(fri);
-for (let w = 3; w >= 1; w--) {
+for (let w = 8; w >= 1; w--) {
   const d = new Date(d0); d.setDate(d.getDate() - 7 * w);
-  seedDay(toDayId(d), 0.75 + w * 0.05, true);
+  seedDay(toDayId(d), 0.6 + 0.075 * ((w * 3) % 5), true);
 }
 seedDay(fri, 0.55, false);
 S.settings.activeDayId = fri;
@@ -123,6 +123,16 @@ export const api = {
     }
     emit();
   },
+
+  loadRange: async (fromDayId, toDayId) => Object.keys(S.days).sort()
+    .filter((id) => id >= fromDayId && id <= toDayId)
+    .map((id) => ({
+      id, date: id,
+      stands: Object.entries(S.days[id].stands).map(([standId, st]) => {
+        const { sales, ...rest } = structuredClone(st);
+        return { standId, ...rest, sales: Object.entries(sales || {}).map(([sid, s]) => ({ id: sid, ...s })) };
+      }),
+    })),
 
   watchStands: (cb) => sub(() => Object.values(S.stands).sort((a, b) => a.order - b.order), cb),
   watchStand: (id, cb) => sub(() => S.stands[id] || null, cb),

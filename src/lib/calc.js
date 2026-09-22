@@ -10,6 +10,11 @@ export function itemTarget(item) {
   return r2((Number(item.qty) || 0) * (Number(item.price) || 0));
 }
 
+/** מה שילמנו על כל הסחורה של הפריט (0 כשהמנהל לא הזין עלות) */
+export function itemStockCost(item) {
+  return r2((Number(item.qty) || 0) * (Number(item.cost) || 0));
+}
+
 /** מחיר מלא למכירה: יחידות × מחיר רגיל ליחידה */
 export function fullPriceFor(item, units) {
   return r2(units * (Number(item.price) || 0));
@@ -59,7 +64,8 @@ export function buildSale(item, { option, times = 1, actualPrice, discountUnits 
 }
 
 function emptyTotals() {
-  return { brought: 0, sold: 0, left: 0, target: 0, full: 0, actual: 0, discount: 0, leftValue: 0, salesCount: 0 };
+  // cost = העלות של מה שנמכר · stockCost = העלות של כל מה שהובא
+  return { brought: 0, sold: 0, left: 0, target: 0, full: 0, actual: 0, discount: 0, leftValue: 0, salesCount: 0, cost: 0, stockCost: 0 };
 }
 
 function addInto(t, s) {
@@ -76,16 +82,18 @@ export function summarizeStand(items = [], sales = []) {
   for (const it of items) {
     byItem[it.id] = {
       id: it.id, name: it.name, category: it.category, unit: it.unit, price: Number(it.price) || 0,
-      ...emptyTotals(), brought: Number(it.qty) || 0, target: itemTarget(it),
+      costPrice: Number(it.cost) || 0,
+      ...emptyTotals(), brought: Number(it.qty) || 0, target: itemTarget(it), stockCost: itemStockCost(it),
     };
   }
   for (const s of active) {
     let row = byItem[s.itemId];
     if (!row) {
-      // מוצר שנמחק אחרי שנמכר — עדיין נספר בכסף
-      row = byItem[s.itemId] = { id: s.itemId, name: s.itemName, category: s.category, unit: s.unit, price: 0, ...emptyTotals() };
+      // מוצר שנמחק אחרי שנמכר — עדיין נספר בכסף (בלי עלות, היא נמחקה איתו)
+      row = byItem[s.itemId] = { id: s.itemId, name: s.itemName, category: s.category, unit: s.unit, price: 0, costPrice: 0, ...emptyTotals() };
     }
     row.sold = r2(row.sold + s.units);
+    row.cost = r2(row.cost + s.units * row.costPrice);
     row.full = r2(row.full + s.fullPrice);
     row.actual = r2(row.actual + s.actualPrice);
     row.discount = r2(row.discount + s.discount);
@@ -95,8 +103,11 @@ export function summarizeStand(items = [], sales = []) {
   for (const row of rows) {
     row.left = r2(Math.max(row.brought - row.sold, 0));
     row.leftValue = r2(row.left * row.price);
+    row.leftCost = r2(row.left * row.costPrice);
     row.avgPrice = row.sold ? r2(row.actual / row.sold) : 0;
     row.sellThrough = row.brought ? row.sold / row.brought : 0;
+    row.profit = r2(row.actual - row.cost);
+    row.margin = row.actual ? row.profit / row.actual : 0;
   }
 
   const byCategory = { flower: emptyTotals(), fruit: emptyTotals() };
@@ -108,7 +119,12 @@ export function summarizeStand(items = [], sales = []) {
   }
   for (const t of [...Object.values(byCategory), total]) finalize(t);
 
-  return { items: rows, byCategory, total, corrections: sales.filter((s) => s.status === 'void').length };
+  return {
+    items: rows, byCategory, total,
+    corrections: sales.filter((s) => s.status === 'void').length,
+    // רווח מוצג רק כשהמנהל בכלל הזין עלויות
+    hasCost: rows.some((r) => r.costPrice > 0),
+  };
 }
 
 function finalize(t) {
@@ -118,6 +134,9 @@ function finalize(t) {
   t.avgPrice = t.sold ? r2(t.actual / t.sold) : 0;
   // פער מהיעד = הנחות + שווי הסחורה שנשארה
   t.gap = r2(t.target - t.actual);
+  // רווח = הכנסות בפועל פחות העלות של מה שנמכר
+  t.profit = r2(t.actual - t.cost);
+  t.margin = t.actual ? t.profit / t.actual : 0;
   return t;
 }
 
@@ -131,7 +150,7 @@ export function combineSummaries(summaries) {
   }
   finalize(total);
   Object.values(byCategory).forEach(finalize);
-  return { total, byCategory };
+  return { total, byCategory, hasCost: summaries.some((s) => s.hasCost) };
 }
 
 /** צבע סטטוס לפי אחוז מהיעד */

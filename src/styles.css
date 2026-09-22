@@ -17,6 +17,9 @@
   --mid: #a86a00;   --mid-soft: #fdf1d8;
   --low: #b3362b;   --low-soft: #fbe6e3;
   --target: #d9d6cc;
+  /* צבעי סדרות בתרשימים — נבדקו לעיוורון צבעים על גבי הרקע של המצב הבהיר */
+  --chart-flower: #b8456a;
+  --chart-fruit: #c7761c;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(20, 30, 25, .06), 0 2px 8px rgba(20, 30, 25, .04);
   color-scheme: light;
@@ -27,6 +30,7 @@
     --line: #2f3632; --primary: #4fb38c; --primary-ink: #0d1a14; --primary-soft: #1d3129;
     --flower: #e58aa8; --flower-soft: #33202a; --fruit: #e7a55a; --fruit-soft: #33281a;
     --good: #5cc48d; --good-soft: #1b3326; --mid: #e3aa3f; --mid-soft: #362a12; --low: #ee7f73; --low-soft: #3a1f1c;
+    --chart-flower: #c4557f; --chart-fruit: #b08a2e;
     --target: #3a423d; --shadow: none; color-scheme: dark;
   }
 }
@@ -35,6 +39,7 @@
   --line: #2f3632; --primary: #4fb38c; --primary-ink: #0d1a14; --primary-soft: #1d3129;
   --flower: #e58aa8; --flower-soft: #33202a; --fruit: #e7a55a; --fruit-soft: #33281a;
   --good: #5cc48d; --good-soft: #1b3326; --mid: #e3aa3f; --mid-soft: #362a12; --low: #ee7f73; --low-soft: #3a1f1c;
+  --chart-flower: #c4557f; --chart-fruit: #b08a2e;
   --target: #3a423d; --shadow: none; color-scheme: dark;
 }
 
@@ -310,8 +315,77 @@ label.check input { width: auto; min-height: 0; }
 .stand-edit input[aria-label] { max-width: 240px; }
 .stand-edit.void { opacity: .55; }
 
+/* ---------- reports ---------- */
+.reports { display: flex; flex-direction: column; gap: 16px; }
+.range-bar { padding-bottom: 6px; }
+.range-bar .seg { margin-bottom: 0; }
+.custom-range { margin-top: 12px; }
+.custom-range label { max-width: 190px; }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+.stat.good .stat-value { color: var(--good); }
+.stat.low .stat-value { color: var(--low); }
+
+.chart { margin: 0; }
+.chart-legend { display: flex; gap: 16px; align-items: center; font-size: .85rem; color: var(--ink-2); margin-bottom: 10px; }
+.chart-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-inline-end: 6px; vertical-align: 0; }
+.sw-actual { background: var(--primary); }
+.sw-target { background: var(--target); }
+.sw-flower { background: var(--chart-flower); }
+.sw-fruit { background: var(--chart-fruit); }
+
+/* עמודת המספרים בצד, ואזור הציור לידה — שניהם באותו גובה */
+.chart-plot { display: grid; grid-template-columns: auto 1fr; gap: 0 10px; }
+.chart-y { position: relative; height: 160px; }
+.chart-y span {
+  position: absolute; inset-inline-end: 0; transform: translateY(50%);
+  font-size: .68rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.chart-area { position: relative; }
+.chart-grid { position: absolute; inset-inline: 0; top: 0; height: 160px; pointer-events: none; }
+.chart-grid span { position: absolute; inset-inline: 0; border-top: 1px dashed var(--line); }
+
+.cols { display: flex; align-items: flex-end; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.cols li { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.col-stack { position: relative; width: 100%; max-width: 44px; height: 160px; }
+.col-stack > span { position: absolute; bottom: 0; inset-inline: 0; border-radius: 4px 4px 0 0; min-height: 1px; }
+.col-target { background: var(--target); }
+.col-actual { background: var(--primary); inset-inline: 24%; }
+.cols li:hover .col-actual { filter: brightness(1.12); }
+.col-tag {
+  position: absolute; inset-inline: 50%; transform: translate(50%, -100%); margin-bottom: 3px;
+  font-size: .7rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+/* מוערם: פרחים למטה, פירות מעליהם, עם רווח של 2px ביניהם */
+.col-stack.stacked { display: flex; flex-direction: column; justify-content: flex-end; }
+.col-stack.stacked > span { position: static; inset: auto; width: 100%; border-radius: 0; }
+.col-stack.stacked > span:first-child { border-radius: 4px 4px 0 0; }
+.col-stack.stacked > span:last-child { margin-top: 2px; border-radius: 4px 4px 0 0; }
+.col-flower { background: var(--chart-flower); }
+.col-fruit { background: var(--chart-fruit); }
+.col-x { font-size: .7rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.rank-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.rank-row { display: grid; grid-template-columns: minmax(64px, 110px) 1fr minmax(96px, auto); gap: 10px; align-items: center; }
+.rank-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-track { position: relative; height: 18px; background: var(--surface-2); border-radius: 4px; }
+.rank-fill { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; border-radius: 4px; min-width: 2px; }
+.rank-fill.actual { background: var(--primary); }
+.rank-fill.item { background: var(--primary); opacity: .75; }
+.rank-row:hover .rank-fill { filter: brightness(1.12); }
+.rank-val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rank-val small { margin-inline-start: 6px; font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .cols li:hover .col-actual, .rank-row:hover .rank-fill { transition: none; }
+  .sheet { animation: none; }
+}
+
 @media (max-width: 560px) {
   .a-main { padding: 12px; }
   .a-day select { min-width: 0; flex: 1; }
   .opt-edit .w-label { width: 110px; }
+  .chart-y span { font-size: .62rem; }
+  .cols { gap: 3px; }
+  .col-x { font-size: .6rem; }
+  .rank-row { grid-template-columns: minmax(56px, 84px) 1fr auto; gap: 6px; font-size: .9rem; }
 }

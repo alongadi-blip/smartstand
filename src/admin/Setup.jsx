@@ -8,8 +8,8 @@ import { useToast } from '../ui.jsx';
 const UNITS = ['זר', 'מארז', 'ק"ג', 'יחידה', 'עציץ'];
 
 const newItem = (category) => category === 'fruit'
-  ? { id: uid(), name: '', category, unit: 'מארז', qty: '', price: '', options: [] }
-  : { id: uid(), name: '', category, unit: 'זר', qty: '', price: '', options: [] };
+  ? { id: uid(), name: '', category, unit: 'מארז', qty: '', price: '', cost: '', options: [] }
+  : { id: uid(), name: '', category, unit: 'זר', qty: '', price: '', cost: '', options: [] };
 
 export default function Setup({ dayId, stands }) {
   const [standId, setStandId] = useState(stands[0]?.id);
@@ -44,7 +44,7 @@ function StandItems({ dayId, stand, stands }) {
   const clean = items
     .filter((it) => it.name.trim())
     .map((it) => ({
-      ...it, name: it.name.trim(), qty: Number(it.qty) || 0, price: Number(it.price) || 0,
+      ...it, name: it.name.trim(), qty: Number(it.qty) || 0, price: Number(it.price) || 0, cost: Number(it.cost) || 0,
       options: (it.options || []).filter((o) => o.label?.trim() && Number(o.units) > 0 && o.price !== '')
         .map((o) => ({ ...o, label: o.label.trim(), units: Number(o.units), price: Number(o.price) })),
     }));
@@ -92,6 +92,7 @@ function StandItems({ dayId, stand, stands }) {
               </label>
               <label className="n">כמות<input type="number" inputMode="decimal" value={it.qty} onChange={(e) => upd(i, { qty: e.target.value })} /></label>
               <label className="n">מחיר רגיל ₪<input type="number" inputMode="decimal" value={it.price} onChange={(e) => upd(i, { price: e.target.value })} /></label>
+              <label className="n" title="מה שילמתם ליחידה. לא חובה — משמש רק לחישוב הרווח בדוחות.">עלות ₪<input type="number" inputMode="decimal" placeholder="—" value={it.cost ?? ''} onChange={(e) => upd(i, { cost: e.target.value })} /></label>
               <div className="ie-target">יעד<b>{money(itemTarget({ qty: Number(it.qty), price: Number(it.price) }))}</b>{sold[it.id] > 0 && <small>נמכרו {num(sold[it.id])}</small>}</div>
               <div className="ie-actions">
                 <button className="icon-btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="למעלה">↑</button>
@@ -125,7 +126,7 @@ function StandItems({ dayId, stand, stands }) {
         {clean.length > 0 && stands.length > 1 && <button className="btn ghost" onClick={copyToOthers} disabled={dirty}>העתקה לשאר הדוכנים</button>}
         <button className="btn primary" disabled={!dirty || busy} onClick={save}>{busy ? 'שומר…' : dirty ? 'שמירה' : 'נשמר'}</button>
       </div>
-      <p className="muted small">המחיר הרגיל קובע את היעד ואת חישוב ההנחות. מבצע = כמות יחידות במחיר כולל (למשל 2 יח׳ ב-35 ₪). העובד יראה אותם ככפתורים.</p>
+      <p className="muted small">המחיר הרגיל קובע את היעד ואת חישוב ההנחות. מבצע = כמות יחידות במחיר כולל (למשל 2 יח׳ ב-35 ₪). העובד יראה אותם ככפתורים. העלות לא חובה — מי שממלא אותה מקבל רווח ואחוז רווח בדוחות.</p>
     </div>
   );
 }

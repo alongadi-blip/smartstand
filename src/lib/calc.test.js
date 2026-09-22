@@ -59,3 +59,38 @@ describe('מכירות והנחות', () => {
     expect(all.byCategory.flower.sold).toBe(4);
   });
 });
+
+describe('רווח', () => {
+  const withCost = { ...bouquet70, cost: 40 };
+
+  it('רווח = הכנסות פחות העלות של מה שנמכר בלבד', () => {
+    const sales = [buildSale(withCost, { option: saleOptions(withCost)[0], times: 4 })];
+    const s = summarizeStand([withCost], sales);
+    expect(s.total.stockCost).toBe(400); // 10 זרים × 40 — מה שהושקע
+    expect(s.total.cost).toBe(160);      // רק 4 נמכרו
+    expect(s.total.actual).toBe(280);
+    expect(s.total.profit).toBe(120);
+    expect(Math.round(s.total.margin * 100)).toBe(43);
+  });
+
+  it('מכירה מתחת לעלות מכניסה את הרווח למינוס', () => {
+    const s = summarizeStand([withCost], [buildSale(withCost, { option: null, actualPrice: 30 })]);
+    expect(s.total.cost).toBe(40);
+    expect(s.total.profit).toBe(-10);
+  });
+
+  it('בלי עלות — hasCost כבוי והרווח שווה להכנסות', () => {
+    const s = summarizeStand([bouquet70], [buildSale(bouquet70, { option: saleOptions(bouquet70)[0] })]);
+    expect(s.hasCost).toBe(false);
+    expect(s.total.cost).toBe(0);
+    expect(s.total.profit).toBe(70);
+  });
+
+  it('עלויות מצטברות בין דוכנים', () => {
+    const s = summarizeStand([withCost], [buildSale(withCost, { option: saleOptions(withCost)[0] })]);
+    const all = combineSummaries([s, s]);
+    expect(all.total.cost).toBe(80);
+    expect(all.total.profit).toBe(60);
+    expect(all.hasCost).toBe(true);
+  });
+});

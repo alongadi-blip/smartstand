@@ -5,7 +5,8 @@ React + Vite + Firebase (Auth + Firestore), עם שמירה אופליין: מכ
 
 ## מה יש בגרסה 1 (ליבה)
 - **עובד דוכן** (מסך טלפון, כפתורים גדולים): מכירה ב-2 לחיצות (מוצר ← מחיר רגיל / מבצע / הנחה), כמות, "ביטול" מיידי, רשימת מכירות עם תיקון/ביטול, סגירת דוכן עם דוח וספירת קופה.
-- **מנהל**: לוח בקרה חי (סה"כ, יעד, נשאר ליעד, זרים, פירות, הנחות, צבע סטטוס לכל דוכן, התראת מלאי נמוך), פירוט לפי מוצר, הזנת סחורה ומחירים ומבצעים, פתיחת יום חדש עם העתקה מהשבוע הקודם, יומן מכירות עם כל התיקונים, היסטוריה לפי תאריך, ניהול עובדים ודוכנים.
+- **מנהל**: לוח בקרה חי (סה"כ, יעד, נשאר ליעד, זרים, פירות, הנחות, רווח, צבע סטטוס לכל דוכן, התראת מלאי נמוך), פירוט לפי מוצר, הזנת סחורה ומחירים ומבצעים, פתיחת יום חדש עם העתקה מהשבוע הקודם, יומן מכירות עם כל התיקונים, היסטוריה לפי תאריך, ניהול עובדים ודוכנים.
+- **דוחות** על טווח תאריכים: הכנסות מול יעד לפי יום, השוואה בין הדוכנים, פרחים מול פירות, מוצרים מובילים, ורווח — עם תרשימים וטבלה מלאה לכל חתך.
 - **הרשאות** נאכפות בשרת (`firestore.rules`): עובד רואה רק את הדוכן שלו; מכירות לא נמחקות לעולם — תיקון מסמן את המקור כ"בוטל" ויוצר מכירה חדשה שמפנה אליו.
 
 ## הגדרות החישוב
@@ -16,6 +17,10 @@ React + Vite + Firebase (Auth + Firestore), עם שמירה אופליין: מכ
 | הנחה | מחיר מלא − מחיר בפועל (מבצע "2 ב-35" על תות של 20 = הנחה של 5) |
 | נשאר ליעד | יעד − הכנסות בפועל |
 | פער מהיעד | הנחות + שווי הסחורה שנשארה |
+| רווח | הכנסות בפועל − העלות של מה שנמכר (לא של כל מה שהובא) |
+| אחוז רווח | רווח ÷ הכנסות בפועל |
+
+העלות היא שדה לא חובה בכל מוצר. בלי עלויות הדוחות פשוט לא מציגים רווח.
 
 ## הרצה מקומית (מצב הדגמה)
 ```bash
@@ -24,7 +29,19 @@ npm run dev        # בלי .env.local → עולה עם נתוני הדגמה
 npm test           # בדיקות החישובים
 ```
 
-## חיבור ל-Firebase ופריסה
+## הפרויקט החי
+- אתר: **https://smartstand-il.web.app**
+- פרויקט Firebase: `smartstand-il` ([קונסול](https://console.firebase.google.com/project/smartstand-il/overview))
+- הפרויקט נעוץ ב-`.firebaserc`, כדי שפריסה מהתיקייה הזאת לא תגיע בטעות לפרויקט אחר.
+
+פריסה: `npm run deploy` (build + hosting + rules). את ההגדרות המקומיות (`.env.local`) לא מעלים לגיט.
+
+## אפליקציה לאנדרואיד (APK)
+כל push ל-`main` בונה APK אוטומטית: Actions → הריצה האחרונה → Artifacts → `smartstand-debug`.
+ה-APK הוא עטיפה דקה סביב האתר החי, כך שפריסה של hosting מעדכנת גם את האפליקציה המותקנת — בלי בנייה מחדש.
+כדי שהבנייה תשתמש בהגדרות האמיתיות, צריך להגדיר ב-GitHub (Settings → Secrets → Actions) את שישה המשתנים מ-`.env.example`.
+
+## חיבור ל-Firebase מאפס (לפרויקט חדש)
 1. [console.firebase.google.com](https://console.firebase.google.com) → פרויקט חדש.
 2. **Authentication** → Sign-in method → להפעיל **Email/Password**.
 3. **Firestore Database** → Create database (Production mode, אזור `eur3` או `me-west1`).
@@ -52,17 +69,18 @@ days/{YYYY-MM-DD}/stands/{id}  items[], status: open|closed, cashCounted, closed
   └ sales/{saleId}             itemId, units, fullPrice, actualPrice, discount, kind,
                                status: active|void, correctionOf, replacedBy, voidReason…
 ```
-כל מוצר: `{ id, name, category: flower|fruit, unit, qty, price, options: [{label, units, price}] }`.
+כל מוצר: `{ id, name, category: flower|fruit, unit, qty, price, cost, options: [{label, units, price}] }`.
+`cost` = מה ששילמנו ליחידה, לא חובה. הדוחות קוראים את הימים דרך `api.loadRange(from, to)` ומאחדים ב-`src/lib/history.js`.
 
-## הרחבות מתוכננות (שלב 2)
-המבנה כבר תומך בהן בלי שינוי נתונים:
-- דוח שבועי/חודשי והשוואה בין דוכנים וימים (גרפים) — אגרגציה על `days/*`.
-- רווח: הוספת שדה `cost` למוצר; החישוב ב-`src/lib/calc.js`.
-- התראות מלאי כהודעת Push (Cloud Function על `sales`).
+## הרחבות מתוכננות
+- התראות מלאי כהודעת Push (Cloud Function על `sales`) — דורש תוכנית Blaze.
+- ייצוא דוח ל-Excel / שליחה בוואטסאפ.
 - עוד דוכנים/עובדים/מוצרים — כבר אפשרי מהממשק.
 
 ## קבצים
-- `src/lib/calc.js` — כל החישובים (עם בדיקות ב-`calc.test.js`)
+- `src/lib/calc.js` — כל החישובים של יום בודד (עם בדיקות ב-`calc.test.js`)
+- `src/lib/history.js` — אגרגציה על טווח ימים לדוחות (בדיקות ב-`history.test.js`, כולל רינדור של המסך)
+- `src/admin/Reports.jsx` · `src/admin/charts.jsx` — מסך הדוחות והתרשימים (HTML/CSS, בלי ספריית גרפים)
 - `src/lib/api.firebase.js` / `api.demo.js` — שכבת נתונים אמיתית / הדגמה
 - `src/worker/` — מסך העובד · `src/admin/` — מסכי המנהל · `src/report/` — דוח סגירה
 - `firestore.rules` — הרשאות

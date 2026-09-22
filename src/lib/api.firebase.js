@@ -7,7 +7,7 @@ import {
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
   doc, collection, getDoc, getDocs, setDoc, updateDoc, onSnapshot, writeBatch,
-  query, orderBy, serverTimestamp,
+  query, where, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { USER_DOMAIN, toEmail } from './format.js';
 
@@ -82,6 +82,27 @@ export const api = {
       prev.forEach((d) => b.set(standDayRef(dayId, d.id), { items: d.data().items || [], status: 'open' }));
     }
     await b.commit();
+  },
+
+  /**
+   * קריאה חד-פעמית של כל הימים בטווח, עם הסחורה והמכירות של כל דוכן — לדוחות.
+   * החזרה: [{ id, date, stands: [{ standId, items, sales, status… }] }] לפי סדר התאריכים.
+   */
+  async loadRange(fromDayId, toDayId) {
+    const days = await getDocs(query(
+      collection(db, 'days'),
+      where('date', '>=', fromDayId), where('date', '<=', toDayId), orderBy('date'),
+    ));
+    return Promise.all(days.docs.map(async (d) => {
+      const stands = await getDocs(collection(db, 'days', d.id, 'stands'));
+      return {
+        id: d.id, ...d.data(),
+        stands: await Promise.all(stands.docs.map(async (sd) => ({
+          standId: sd.id, ...sd.data(),
+          sales: (await getDocs(salesCol(d.id, sd.id))).docs.map(withId),
+        }))),
+      };
+    }));
   },
 
   // ---------- דוכנים ----------

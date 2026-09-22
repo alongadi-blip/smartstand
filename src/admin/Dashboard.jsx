@@ -9,7 +9,7 @@ import StandReport from '../report/StandReport.jsx';
 export default function Dashboard({ dayId, stands, isActive, onSellAs, onSetup }) {
   const all = useAllStandDays(dayId, stands);
   const [open, setOpen] = useState(null);
-  const { total: T, byCategory: C } = combineSummaries(all.map((a) => a.summary));
+  const { total: T, byCategory: C, hasCost } = combineSummaries(all.map((a) => a.summary));
   const anyItems = all.some((a) => a.standDay?.items?.length);
   const maxActual = Math.max(...all.map((a) => Math.max(a.summary.total.target, a.summary.total.actual)), 1);
 
@@ -30,6 +30,7 @@ export default function Dashboard({ dayId, stands, isActive, onSellAs, onSetup }
         <Stat label="זרים שנמכרו" value={num(C.flower.sold)} sub={`מתוך ${num(C.flower.brought)} · ממוצע ${money(C.flower.avgPrice)}`} />
         <Stat label="פירות שנמכרו" value={num(C.fruit.sold)} sub={`מתוך ${num(C.fruit.brought)} · ${money(C.fruit.actual)}`} />
         <Stat label="סה״כ הנחות" value={money(T.discount)} sub={`מחיר מלא ${money(T.full)}`} />
+        {hasCost && <Stat label="רווח היום" value={money(T.profit)} sub={`אחוז רווח ${pct(T.margin)} · עלות ${money(T.cost)}`} tone={T.profit >= 0 ? 'good' : 'low'} />}
       </section>
 
       <section className="card">
@@ -74,6 +75,7 @@ export default function Dashboard({ dayId, stands, isActive, onSellAs, onSetup }
                       <div key={c}><dt>{CATEGORY_LABEL[c]}</dt><dd>{money(s.byCategory[c].actual)}<small className="dd-sub">{num(s.byCategory[c].sold)} מתוך {num(s.byCategory[c].brought)}</small></dd></div>
                     ))}
                     <div><dt>הנחות</dt><dd>{money(s.total.discount)}</dd></div>
+                    {s.hasCost && <div><dt>רווח</dt><dd className={s.total.profit < 0 ? 'warn-text' : ''}>{money(s.total.profit)}<small className="dd-sub">{pct(s.total.margin)}</small></dd></div>}
                     <div><dt>ביצוע מלאי</dt><dd>{pct(s.total.sellThrough)}</dd></div>
                     {standDay?.cashCounted != null && <div><dt>קופה שנספרה</dt><dd>{money(standDay.cashCounted)}</dd></div>}
                   </dl>

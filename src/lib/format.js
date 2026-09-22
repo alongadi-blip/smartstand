@@ -9,6 +9,9 @@ export const pct = (p) => `${(Math.round((p || 0) * 1000) / 10).toLocaleString('
 
 export const time = (ms) => new Date(ms).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
+/** "יום מכירה אחד" / "9 ימי מכירה" */
+export const saleDays = (n) => (n === 1 ? 'יום מכירה אחד' : `${num(n)} ימי מכירה`);
+
 const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 export function dayLabel(dayId) {
   if (!dayId) return '';
