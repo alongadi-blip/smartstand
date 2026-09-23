@@ -89,6 +89,37 @@ export function CategoryChart({ perDay }) {
   );
 }
 
+/** עמודות מוערמות: מזומן למטה, ביט מעליו. אותו ציר. */
+export function PaymentChart({ perDay }) {
+  const max = Math.max(...perDay.map((d) => d.total.actual), 1);
+  return (
+    <figure className="chart">
+      <div className="chart-legend">
+        <span><i className="sw-cash" />מזומן</span>
+        <span><i className="sw-bit" />ביט</span>
+      </div>
+      <div className="chart-plot">
+        <Axis max={max} />
+        <div className="chart-area">
+          <Grid />
+          <ol className="cols">
+            {perDay.map((d) => (
+              <li key={d.dayId} title={`${dayLabel(d.dayId)} · מזומן ${money(d.total.cash)} · ביט ${money(d.total.bit)} (${pct(d.total.bitPct)})`}>
+                <div className="col-stack stacked">
+                  <span className="col-bit" style={{ height: (d.total.bit / max) * 100 + '%' }} />
+                  <span className="col-cash" style={{ height: (d.total.cash / max) * 100 + '%' }} />
+                </div>
+                <span className="col-x">{shortDay(d.dayId)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+      <figcaption className="muted small">מזומן למטה, ביט מעליו — הגובה הכולל הוא ההכנסה של אותו יום.</figcaption>
+    </figure>
+  );
+}
+
 /**
  * עמודות אופקיות ממוינות מהגבוה לנמוך, עם המספר על כל עמודה.
  * משמש גם להשוואת דוכנים וגם למוצרים המובילים.
@@ -101,7 +132,7 @@ export function RankBars({ rows, tone = 'actual' }) {
         <div className="rank-row" key={r.key} title={r.title || `${r.label}: ${money(r.value)}`}>
           <span className="rank-name">{r.label}</span>
           <span className="rank-track">
-            <span className={'rank-fill ' + tone} style={{ width: (r.value / max) * 100 + '%' }} />
+            <span className={'rank-fill ' + (r.tone || tone)} style={{ width: (r.value / max) * 100 + '%' }} />
           </span>
           <span className="rank-val">{money(r.value)}{r.sub && <small>{r.sub}</small>}</span>
         </div>

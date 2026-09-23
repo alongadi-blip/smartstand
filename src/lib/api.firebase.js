@@ -105,6 +105,28 @@ export const api = {
     }));
   },
 
+  // ---------- הוצאות שוטפות ----------
+  watchExpenses: (fromDate, toDate, cb) => listen(query(
+    collection(db, 'expenses'),
+    where('date', '>=', fromDate), where('date', '<=', toDate), orderBy('date', 'desc'),
+  ), cb),
+
+  async loadExpenses(fromDate, toDate) {
+    const snap = await getDocs(query(
+      collection(db, 'expenses'),
+      where('date', '>=', fromDate), where('date', '<=', toDate), orderBy('date', 'desc'),
+    ));
+    return snap.docs.map(withId);
+  },
+
+  addExpense: ({ date, category, amount, note, standId }, user) =>
+    setDoc(doc(collection(db, 'expenses')), {
+      date, category, amount: Number(amount) || 0, note: note || '', standId: standId || null,
+      createdAt: Date.now(), createdBy: user.uid, createdByName: user.name,
+    }),
+  updateExpense: (id, patch) => updateDoc(doc(db, 'expenses', id), patch),
+  deleteExpense: (id) => deleteDoc(doc(db, 'expenses', id)),
+
   // ---------- דוכנים ----------
   watchStands: (cb) => listen(query(collection(db, 'stands'), orderBy('order')), cb),
   watchStand: (id, cb) => listen(doc(db, 'stands', id), cb),

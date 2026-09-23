@@ -27,6 +27,7 @@ const S = {
   },
   settings: {},
   days: {}, // dayId -> { date, stands: { standId: { items, status, ... , sales: {id: sale} } } }
+  expenses: {}, // id -> { date, category, amount, note, standId }
   authUid: null,
 };
 
@@ -93,6 +94,18 @@ for (let w = 8; w >= 1; w--) {
 seedDay(fri, 0.55, false);
 S.settings.activeDayId = fri;
 
+// הוצאות לדוגמה: סחורה ודלק בכל יום מכירה, משכורות פעם בחודש
+Object.keys(S.days).sort().forEach((dayId, i) => {
+  const add = (category, amount, note, standId) => {
+    const id = rid();
+    S.expenses[id] = { id, date: dayId, category, amount, note, standId: standId || null, createdAt: Date.now(), createdByName: 'מנהל (הדגמה)' };
+  };
+  add('goods', 3200 + (i % 4) * 260, 'שוק הפרחים');
+  add('fuel', 240 + (i % 3) * 40, 'סולר להסעות');
+  if (i % 4 === 0) add('salary', 4800, 'משכורות עובדי הדוכנים');
+  if (i % 5 === 2) add('other', 180, 'שקיות ואריזות');
+});
+
 const me = () => S.users[S.authUid];
 const sd = (dayId, standId) => S.days[dayId]?.stands?.[standId];
 const authCbs = new Set();
@@ -125,6 +138,23 @@ export const api = {
     }
     emit();
   },
+
+  watchExpenses: (fromDate, toDate, cb) => sub(() => Object.values(S.expenses)
+    .filter((e) => e.date >= fromDate && e.date <= toDate)
+    .sort((a, b) => (a.date < b.date ? 1 : -1)), cb),
+  loadExpenses: async (fromDate, toDate) => structuredClone(Object.values(S.expenses)
+    .filter((e) => e.date >= fromDate && e.date <= toDate)
+    .sort((a, b) => (a.date < b.date ? 1 : -1))),
+  addExpense: async ({ date, category, amount, note, standId }, user) => {
+    const id = rid();
+    S.expenses[id] = {
+      id, date, category, amount: Number(amount) || 0, note: note || '', standId: standId || null,
+      createdAt: Date.now(), createdBy: user.uid, createdByName: user.name,
+    };
+    emit();
+  },
+  updateExpense: async (id, patch) => { Object.assign(S.expenses[id], patch); emit(); },
+  deleteExpense: async (id) => { delete S.expenses[id]; emit(); },
 
   loadRange: async (fromDayId, toDayId) => Object.keys(S.days).sort()
     .filter((id) => id >= fromDayId && id <= toDayId)

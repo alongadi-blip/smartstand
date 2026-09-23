@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api.js';
 import { summarizeRange, rangeExtremes, rangePresets } from '../lib/history.js';
 import { CATEGORY_LABEL } from '../lib/calc.js';
+import { EXPENSE_CATEGORIES, summarizeExpenses, netProfit, netMargin, goodsCountedTwice } from '../lib/expenses.js';
 import { money, num, pct, dayLabel, saleDays } from '../lib/format.js';
 import { Stat, Empty } from '../ui.jsx';
-import { TrendChart, CategoryChart, RankBars } from './charts.jsx';
+import { TrendChart, CategoryChart, PaymentChart, RankBars } from './charts.jsx';
 
 export default function Reports({ days, stands }) {
   const dayIds = useMemo(() => days.map((d) => d.id), [days]);
@@ -13,6 +14,7 @@ export default function Reports({ days, stands }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [rows, setRows] = useState(null);
+  const [expenses, setExpenses] = useState(null);
   const [error, setError] = useState(null);
 
   // הטווח הנבחר: אחד המוכנים, או תאריכים שהמנהל הקליד
@@ -24,14 +26,17 @@ export default function Reports({ days, stands }) {
     if (!range?.from || !range?.to || range.from > range.to) { setRows(null); return; }
     let live = true;
     setRows(null);
+    setExpenses(null);
     setError(null);
-    api.loadRange(range.from, range.to)
-      .then((r) => { if (live) setRows(r); })
+    // המכירות וההוצאות נטענות יחד — הרווח הנקי מחייב את שתיהן
+    Promise.all([api.loadRange(range.from, range.to), api.loadExpenses(range.from, range.to)])
+      .then(([r, e]) => { if (live) { setRows(r); setExpenses(e); } })
       .catch((e) => { if (live) { console.error(e); setError(e); } });
     return () => { live = false; };
   }, [range?.from, range?.to]);
 
   const data = useMemo(() => (rows ? summarizeRange(rows, stands) : null), [rows, stands]);
+  const exp = useMemo(() => (expenses ? summarizeExpenses(expenses) : null), [expenses]);
 
   return (
     <div className="reports">
@@ -56,31 +61,64 @@ export default function Reports({ days, stands }) {
       </div>
 
       {error && <div className="card warn">לא הצלחתי לטעון את הדוח. אם זה נמשך — רעננו את הדף.</div>}
-      {!rows && !error && <div className="card splash">טוען דוח…</div>}
-      {data && (data.daysCount === 0
-        ? <div className="card"><Empty>אין ימי מכירה בטווח הזה.</Empty></div>
-        : <ReportBody data={data} range={range} />)}
+      {(!rows || !exp) && !error && <div className="card splash">טוען דוח…</div>}
+      {data && exp && (data.daysCount === 0 && exp.count === 0
+        ? <div className="card"><Empty>אין ימי מכירה ואין הוצאות בטווח הזה.</Empty></div>
+        : <ReportBody data={data} exp={exp} range={range} />)}
     </div>
   );
 }
 
-export function ReportBody({ data, range }) {
+export function ReportBody({ data, exp, range }) {
   const { total: T, byCategory: C, perDay, perStand, perItem, hasCost } = data;
   const ext = rangeExtremes(perDay);
   const anyFruit = C.fruit.brought > 0 || C.fruit.actual > 0;
+  const net = netProfit(T.actual, exp.total);
+  const doubleCount = goodsCountedTwice(data, exp);
 
   return (
     <>
       <section className="kpis">
         <Stat label="סה״כ הכנסות" value={money(T.actual)} sub={`${saleDays(data.daysCount)} · מתוך יעד ${money(T.target)}`} tone="hero" />
+        <Stat label="סה״כ הוצאות" value={money(exp.total)} sub={`${exp.count} רשומות הוצאה`} />
+        <Stat label="רווח נקי" value={money(net)} sub={`הכנסות פחות הוצאות · ${pct(netMargin(T.actual, exp.total))}`} tone={net >= 0 ? 'good' : 'low'} />
         <Stat label="אחוז מהיעד" value={pct(T.targetPct)} sub={`פער ${money(T.gap)}`} />
         <Stat label="ממוצע ליום מכירה" value={money(ext?.avg || 0)} sub={ext ? `הטוב ביותר ${money(ext.best.total.actual)} (${dayLabel(ext.best.dayId).replace('יום ', '')})` : null} />
-        {hasCost
-          ? <Stat label="רווח" value={money(T.profit)} sub={`אחוז רווח ${pct(T.margin)} · עלות ${money(T.cost)}`} tone={T.profit >= 0 ? 'good' : 'low'} />
-          : <Stat label="רווח" value="—" sub="הזינו עלות למוצרים במסך הסחורה" />}
         <Stat label="מזומן" value={money(T.cash)} sub={`ביט ${money(T.bit)} · ${pct(T.bitPct)} מההכנסות`} />
         <Stat label="סה״כ הנחות" value={money(T.discount)} sub={`מחיר מלא ${money(T.full)}`} />
         <Stat label="ביצוע מלאי" value={pct(T.sellThrough)} sub={`נמכרו ${num(T.sold)} מתוך ${num(T.brought)} · נשארו בשווי ${money(T.leftValue)}`} />
+      </section>
+
+      <section className="card">
+        <div className="card-head">
+          <h2>הכנסות מול הוצאות</h2>
+          <span className="muted small">{dayLabel(range.from).replace('יום ', '')} — {dayLabel(range.to).replace('יום ', '')}</span>
+        </div>
+        <RankBars rows={[
+          { key: 'in', label: 'הכנסות', value: T.actual, title: `הכנסות ${money(T.actual)}` },
+          { key: 'out', label: 'הוצאות', value: exp.total, tone: 'expense', title: `הוצאות ${money(exp.total)}` },
+        ]} />
+        <dl className="mini">
+          <div><dt>רווח נקי</dt><dd className={net < 0 ? 'warn-text' : ''}>{money(net)}<small className="dd-sub">{pct(netMargin(T.actual, exp.total))} מההכנסות</small></dd></div>
+          {EXPENSE_CATEGORIES.map((c) => (
+            <div key={c.id}>
+              <dt>{c.label}</dt>
+              <dd>{money(exp.byCategory[c.id])}
+                <small className="dd-sub">{exp.total ? pct(exp.byCategory[c.id] / exp.total) : '—'} מההוצאות</small>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {doubleCount && (
+          <div className="warn net-note">
+            שימו לב: הזנתם גם עלות למוצרים במסך הסחורה וגם הוצאה בקטגוריית "פרחים וסחורה". שני אלה מודדים את אותו כסף.
+            הרווח הנקי כאן מחושב לפי ההוצאות בלבד, ולכן אינו מחבר אותם פעמיים — אבל כדאי להחליט על שיטה אחת:
+            ההוצאות נותנות את התמונה העסקית, והעלות לפי מוצר נותנת רווחיות לכל מוצר בנפרד.
+          </div>
+        )}
+        {!hasCost && exp.total === 0 && (
+          <div className="muted small net-note">אין עדיין הוצאות בטווח הזה — הזינו אותן בלשונית "הוצאות" כדי לקבל רווח נקי.</div>
+        )}
       </section>
 
       <section className="card">
@@ -93,7 +131,10 @@ export function ReportBody({ data, range }) {
 
       <div className="two-col">
         <section className="card">
-          <div className="card-head"><h2>השוואה בין דוכנים</h2></div>
+          <div className="card-head">
+            <h2>השוואה בין דוכנים</h2>
+            {hasCost && <span className="muted small">רווח גולמי = הכנסות פחות עלות הסחורה שנמכרה</span>}
+          </div>
           <RankBars rows={perStand.map((s) => ({
             key: s.standId,
             label: s.name,
@@ -104,7 +145,7 @@ export function ReportBody({ data, range }) {
           <div className="table-wrap">
             <table className="tbl">
               <thead>
-                <tr><th>דוכן</th><th>ימים</th><th>הכנסות</th><th>מזומן</th><th>ביט</th><th>יעד</th><th>% יעד</th><th>הנחות</th>{hasCost && <th>רווח</th>}</tr>
+                <tr><th>דוכן</th><th>ימים</th><th>הכנסות</th><th>מזומן</th><th>ביט</th><th>יעד</th><th>% יעד</th><th>הנחות</th>{hasCost && <th>רווח גולמי</th>}</tr>
               </thead>
               <tbody>
                 {perStand.map((s) => (
@@ -129,6 +170,34 @@ export function ReportBody({ data, range }) {
               </tfoot>
             </table>
           </div>
+        </section>
+
+        <section className="card">
+          <div className="card-head">
+            <h2>מזומן מול ביט</h2>
+            <span className="muted small">ביט: {pct(T.bitPct)} מההכנסות</span>
+          </div>
+          <PaymentChart perDay={perDay} />
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead><tr><th>דוכן</th><th>מזומן</th><th>ביט</th><th>% ביט</th><th>סה״כ</th></tr></thead>
+              <tbody>
+                {perStand.map((s) => (
+                  <tr key={s.standId}>
+                    <td>{s.name}</td>
+                    <td>{money(s.total.cash)}</td>
+                    <td>{money(s.total.bit)}</td>
+                    <td>{pct(s.total.bitPct)}</td>
+                    <td><b>{money(s.total.actual)}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr><td>סה״כ</td><td><b>{money(T.cash)}</b></td><td><b>{money(T.bit)}</b></td><td>{pct(T.bitPct)}</td><td><b>{money(T.actual)}</b></td></tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="muted small">רק המזומן אמור להימצא בקופה בסוף היום. תשלומי ביט מגיעים לחשבון ולכן לא נספרים בה.</p>
         </section>
 
         {anyFruit && (
@@ -164,7 +233,7 @@ export function ReportBody({ data, range }) {
             <thead>
               <tr>
                 <th>מוצר</th><th>הובאו</th><th>נמכרו</th><th>ביצוע</th><th>הכנסות</th>
-                <th>ממוצע ליח׳</th><th>הנחות</th>{hasCost && <><th>עלות</th><th>רווח</th><th>% רווח</th></>}
+                <th>ממוצע ליח׳</th><th>הנחות</th>{hasCost && <><th>עלות</th><th>רווח גולמי</th><th>% גולמי</th></>}
               </tr>
             </thead>
             <tbody>
@@ -190,7 +259,7 @@ export function ReportBody({ data, range }) {
         <div className="table-wrap">
           <table className="tbl">
             <thead>
-              <tr><th>יום</th><th>הכנסות</th><th>מזומן</th><th>ביט</th><th>יעד</th><th>% יעד</th><th>הנחות</th><th>נמכרו</th>{hasCost && <th>רווח</th>}<th>מכירות</th></tr>
+              <tr><th>יום</th><th>הכנסות</th><th>מזומן</th><th>ביט</th><th>הוצאות</th><th>יעד</th><th>% יעד</th><th>הנחות</th><th>נמכרו</th>{hasCost && <th>רווח גולמי</th>}<th>מכירות</th></tr>
             </thead>
             <tbody>
               {[...perDay].reverse().map((d) => (
@@ -199,6 +268,7 @@ export function ReportBody({ data, range }) {
                   <td><b>{money(d.total.actual)}</b></td>
                   <td>{money(d.total.cash)}</td>
                   <td>{money(d.total.bit)}</td>
+                  <td>{exp.byDay[d.dayId] ? money(exp.byDay[d.dayId]) : '—'}</td>
                   <td>{money(d.total.target)}</td>
                   <td>{pct(d.total.targetPct)}</td>
                   <td>{money(d.total.discount)}</td>

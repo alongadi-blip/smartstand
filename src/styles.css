@@ -18,6 +18,8 @@
   --low: #b3362b;   --low-soft: #fbe6e3;
   --target: #d9d6cc;
   /* צבעי סדרות בתרשימים — נבדקו לעיוורון צבעים על גבי הרקע של המצב הבהיר */
+  --chart-cash: #0b8158;
+  --chart-bit: #7a5ea8;
   --chart-flower: #b8456a;
   --chart-fruit: #c7761c;
   --radius: 14px;
@@ -30,6 +32,7 @@
     --line: #2f3632; --primary: #4fb38c; --primary-ink: #0d1a14; --primary-soft: #1d3129;
     --flower: #e58aa8; --flower-soft: #33202a; --fruit: #e7a55a; --fruit-soft: #33281a;
     --good: #5cc48d; --good-soft: #1b3326; --mid: #e3aa3f; --mid-soft: #362a12; --low: #ee7f73; --low-soft: #3a1f1c;
+    --chart-cash: #2f9e74; --chart-bit: #9b82c9;
     --chart-flower: #c4557f; --chart-fruit: #b08a2e;
     --target: #3a423d; --shadow: none; color-scheme: dark;
   }
@@ -39,6 +42,7 @@
   --line: #2f3632; --primary: #4fb38c; --primary-ink: #0d1a14; --primary-soft: #1d3129;
   --flower: #e58aa8; --flower-soft: #33202a; --fruit: #e7a55a; --fruit-soft: #33281a;
   --good: #5cc48d; --good-soft: #1b3326; --mid: #e3aa3f; --mid-soft: #362a12; --low: #ee7f73; --low-soft: #3a1f1c;
+  --chart-cash: #2f9e74; --chart-bit: #9b82c9;
   --chart-flower: #c4557f; --chart-fruit: #b08a2e;
   --target: #3a423d; --shadow: none; color-scheme: dark;
 }
@@ -352,6 +356,8 @@ label.check input { width: auto; min-height: 0; }
 .chart-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-inline-end: 6px; vertical-align: 0; }
 .sw-actual { background: var(--primary); }
 .sw-target { background: var(--target); }
+.sw-cash { background: var(--chart-cash); }
+.sw-bit { background: var(--chart-bit); }
 .sw-flower { background: var(--chart-flower); }
 .sw-fruit { background: var(--chart-fruit); }
 
@@ -382,6 +388,8 @@ label.check input { width: auto; min-height: 0; }
 .col-stack.stacked > span { position: static; inset: auto; width: 100%; border-radius: 0; }
 .col-stack.stacked > span:first-child { border-radius: 4px 4px 0 0; }
 .col-stack.stacked > span:last-child { margin-top: 2px; border-radius: 4px 4px 0 0; }
+.col-cash { background: var(--chart-cash); }
+.col-bit { background: var(--chart-bit); }
 .col-flower { background: var(--chart-flower); }
 .col-fruit { background: var(--chart-fruit); }
 .col-x { font-size: .7rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -393,6 +401,10 @@ label.check input { width: auto; min-height: 0; }
 .rank-fill { position: absolute; top: 0; bottom: 0; inset-inline-start: 0; border-radius: 4px; min-width: 2px; }
 .rank-fill.actual { background: var(--primary); }
 .rank-fill.item { background: var(--primary); opacity: .75; }
+.rank-fill.expense { background: var(--mid); }
+.expenses { display: flex; flex-direction: column; gap: 16px; }
+.month-pick { max-width: 220px; }
+.net-note { margin-top: 12px; }
 .rank-row:hover .rank-fill { filter: brightness(1.12); }
 .rank-val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rank-val small { margin-inline-start: 6px; font-weight: 500; }

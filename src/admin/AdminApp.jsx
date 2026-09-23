@@ -7,6 +7,7 @@ import Dashboard from './Dashboard.jsx';
 import Setup from './Setup.jsx';
 import SalesLog from './SalesLog.jsx';
 import Reports from './Reports.jsx';
+import Expenses from './Expenses.jsx';
 import Team from './Team.jsx';
 import StandScreen from '../worker/StandScreen.jsx';
 
@@ -14,11 +15,12 @@ const TABS = [
   ['dash', 'לוח בקרה'],
   ['setup', 'סחורה ומחירים'],
   ['log', 'מכירות ותיקונים'],
+  ['expenses', 'הוצאות'],
   ['reports', 'דוחות'],
   ['team', 'צוות ודוכנים'],
 ];
 // לשוניות שלא תלויות ביום מסוים
-const DAYLESS = ['team', 'reports'];
+const DAYLESS = ['team', 'reports', 'expenses'];
 
 export default function AdminApp() {
   const user = useUser();
@@ -67,6 +69,7 @@ export default function AdminApp() {
             {tab === 'dash' && <Dashboard dayId={dayId} stands={stands} isActive={isActive} onSellAs={setSellAs} onSetup={() => setTab('setup')} />}
             {tab === 'setup' && <Setup dayId={dayId} stands={stands} />}
             {tab === 'log' && <SalesLog dayId={dayId} stands={stands} />}
+            {tab === 'expenses' && <Expenses stands={stands} />}
             {tab === 'reports' && <Reports days={days} stands={stands} />}
             {tab === 'team' && <Team stands={stands} />}
           </>

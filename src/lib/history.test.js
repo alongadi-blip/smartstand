@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { api } from './api.demo.js';
 import { summarizeRange, rangeExtremes, rangePresets } from './history.js';
+import { summarizeExpenses } from './expenses.js';
 import { ReportBody } from '../admin/Reports.jsx';
+
+const noExpenses = () => summarizeExpenses([]);
 
 const STANDS = [
   { id: 'stand1', name: 'דוכן 1', order: 1 },
@@ -99,14 +102,14 @@ describe('מסך הדוח נרנדר', () => {
     const { ids, rows } = await loadAll();
     const data = summarizeRange(rows, STANDS);
     const html = renderToStaticMarkup(createElement(ReportBody, {
-      data, range: { from: ids[0], to: ids[ids.length - 1] },
+      data, exp: noExpenses(), range: { from: ids[0], to: ids[ids.length - 1] },
     }));
     expect(html).toContain('השוואה בין דוכנים');
     expect(html).toContain('מוצרים מובילים');
     expect(html).toContain('כל ימי המכירה');
     expect(html).toContain('דוכן 1');
-    // עמודה לכל יום מכירה, בשני התרשימים
-    expect(html.split('col-stack').length - 1).toBe(data.perDay.length * 2);
+    // עמודה לכל יום מכירה, בשלושת התרשימים: יעד, תשלום, קטגוריה
+    expect(html.split('col-stack').length - 1).toBe(data.perDay.length * 3);
     expect(html).not.toContain('NaN');
     expect(html).not.toContain('undefined');
   });
@@ -123,9 +126,10 @@ describe('מסך הדוח נרנדר', () => {
     }];
     const data = summarizeRange(noCost, STANDS);
     expect(data.hasCost).toBe(false);
-    const html = renderToStaticMarkup(createElement(ReportBody, { data, range: { from: '2026-09-18', to: '2026-09-18' } }));
-    expect(html).toContain('הזינו עלות למוצרים');
-    expect(html).not.toContain('% רווח');
+    const html = renderToStaticMarkup(createElement(ReportBody, { data, exp: noExpenses(), range: { from: '2026-09-18', to: '2026-09-18' } }));
+    // בלי עלות למוצר אין רווח גולמי, אבל רווח נקי מוצג תמיד
+    expect(html).not.toContain('% גולמי');
+    expect(html).toContain('רווח נקי');
     expect(html).not.toContain('NaN');
   });
 });

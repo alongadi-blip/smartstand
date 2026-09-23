@@ -47,6 +47,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // הוצאות שוטפות — מנהל בלבד, גם לקריאה: משכורות לא נחשפות לעובדי הדוכנים.
+    match /expenses/{expenseId} {
+      allow read, write: if isAdmin();
+    }
+
     match /days/{dayId} {
       allow read: if hasProfile();
       allow write: if isAdmin();
