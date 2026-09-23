@@ -423,6 +423,10 @@ label.check input { width: auto; min-height: 0; }
   .a-day { order: 3; flex-basis: 100%; }
   .a-day select { min-width: 0; flex: 1; }
   .opt-edit .w-label { width: 110px; }
+  /* שש לשוניות לא נכנסות לרוחב טלפון. גלילה אופקית מסתירה אותן בלי סימן,
+     ולכן הן נשברות לשתי שורות — כל לשונית נראית בלי לגלול. */
+  .tabs { flex-wrap: wrap; overflow-x: visible; gap: 2px 0; padding-bottom: 2px; }
+  .tabs button { padding: 9px 10px; font-size: .92rem; }
   .chart-y span { font-size: .62rem; }
   .cols { gap: 3px; }
   .col-x { font-size: .6rem; }
